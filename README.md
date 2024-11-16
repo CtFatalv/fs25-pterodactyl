@@ -1,2 +1,2 @@
-# fs25-pterodactyl
-fs25-pterodactyl
+# yolks
+Collection of images that can be used with Pterodactyl's Egg system
