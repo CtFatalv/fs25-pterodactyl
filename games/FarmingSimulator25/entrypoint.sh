@@ -14,14 +14,17 @@ if [[ $XVFB == 1 ]]; then
         Xvfb :0 -screen 0 ${DISPLAY_WIDTH}x${DISPLAY_HEIGHT}x${DISPLAY_DEPTH} &
 fi
 
-# Install necessary to run packages
-echo "First launch will throw some errors. Ignore them"
+# Configure Wine for 32-bit
+export WINEARCH=win32
+export WINEPREFIX=/home/container/.wine
 
+# Initialize the 32-bit Wine prefix
 mkdir -p $WINEPREFIX
+wineboot --init
 
-# Check if wine-gecko required and install it if so
+# Install Wine Gecko if required
 if [[ $WINETRICKS_RUN =~ gecko ]]; then
-        echo "Installing Gecko"
+        echo "Installing Gecko for 32-bit Wine prefix"
         WINETRICKS_RUN=${WINETRICKS_RUN/gecko}
 
         if [ ! -f "$WINEPREFIX/gecko_x86.msi" ]; then
@@ -31,9 +34,9 @@ if [[ $WINETRICKS_RUN =~ gecko ]]; then
         wine msiexec /i $WINEPREFIX/gecko_x86.msi /qn /quiet /norestart /log $WINEPREFIX/gecko_x86_install.log
 fi
 
-# Check if wine-mono required and install it if so
+# Install Wine Mono if required
 if [[ $WINETRICKS_RUN =~ mono ]]; then
-        echo "Installing mono"
+        echo "Installing Mono for 32-bit Wine prefix"
         WINETRICKS_RUN=${WINETRICKS_RUN/mono}
 
         if [ ! -f "$WINEPREFIX/mono.msi" ]; then
@@ -43,14 +46,16 @@ if [[ $WINETRICKS_RUN =~ mono ]]; then
         wine msiexec /i $WINEPREFIX/mono.msi /qn /quiet /norestart /log $WINEPREFIX/mono_install.log
 fi
 
-# List and install other packages
+# Install other packages using winetricks
 for trick in $WINETRICKS_RUN; do
-        echo "Installing $trick"
+        echo "Installing $trick in 32-bit Wine prefix"
         winetricks -q $trick
 done
 
+# Remove temporary files for Nginx
 rm -rf /home/container/.nginx/tmp/*
 
+# Start Nginx
 echo "⟳ Starting Nginx..."
 nginx -c /home/container/.nginx/nginx/nginx.conf -p /home/container/.nginx/
 echo "✓ started Nginx..."
@@ -59,8 +64,7 @@ echo "✓ started Nginx..."
 MODIFIED_STARTUP=$(echo ${STARTUP} | sed -e 's/{{/${/g' -e 's/}}/}/g')
 echo ":/home/container$ ${MODIFIED_STARTUP}"
 
-export WINEPREFIX=~/.wine
-WINEARCH=win32 winetricks
-
-# Run the Server
+# Run the server in 32-bit mode
+export WINEARCH=win32
+export WINEPREFIX=/home/container/.wine
 eval ${MODIFIED_STARTUP}
